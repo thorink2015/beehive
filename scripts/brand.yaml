@@ -1,0 +1,38 @@
+# Tank Mix branding tokens. Edit here to restyle every issue at once.
+# To rebrand: change brand_name, accent, fonts, logo_url. Nothing else required.
+
+brand_name:   "Tank Mix"
+website_url:  "https://tankmix.example/"
+
+# Logo: leave logo_url empty to render a styled text wordmark (recommended until
+# you have a hosted logo). If set, must be an absolute HTTPS image URL.
+logo_url:       ""
+logo_width_px:  140
+
+# Footer note shown above beehiiv's own auto-appended footer.
+# Leave empty to use "Thanks for reading <brand_name>."
+footer_note:  "Thanks for reading Tank Mix. Forward this to a neighbor who runs a sprayer."
+
+# Colors
+ink:            "#1A1A1A"   # body text
+ink_soft:       "#3B3B3B"   # blockquote / secondary
+muted:          "#6B6B6B"   # captions, meta, footer
+bg_canvas:      "#FAF8F3"   # outer background
+bg_card:        "#FFFFFF"   # inner content card
+accent:         "#2E5A1C"   # wordmark, links, button background
+accent_dark:    "#6FA84A"   # lighter green for inverted backgrounds (text only)
+border:         "#E5E1D6"   # dividers, hr, card border
+
+# Layout
+max_width_px:   600
+pad_outer:      "24px 12px"
+pad_card_px:    32
+
+# Fonts
+font_heading:   "Georgia, 'Times New Roman', 'Iowan Old Style', serif"
+font_body:      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
+# Button
+button_width_px:   240
+button_height_px:  48
+button_radius_px:  4

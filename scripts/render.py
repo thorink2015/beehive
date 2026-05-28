@@ -19,7 +19,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from _draft import parse
-from md_to_beehiiv_html import md_to_beehiiv_html
+from md_to_beehiiv_html import md_to_beehiiv_html, qa
 
 PREVIEW_SHELL = """<!doctype html>
 <html><head><meta charset="utf-8"><title>{title} — preview</title></head>
@@ -37,7 +37,7 @@ PREVIEW_SHELL = """<!doctype html>
 def main(md_path: str) -> None:
     meta, body_md = parse(md_path)
     slug = meta.get("slug") or pathlib.Path(md_path).stem
-    html = md_to_beehiiv_html(body_md)
+    html = md_to_beehiiv_html(body_md, meta=meta)
 
     out_dir = pathlib.Path(__file__).parent.parent / "rendered"
     out_dir.mkdir(exist_ok=True)
@@ -59,6 +59,19 @@ def main(md_path: str) -> None:
         print(f"  Display date  : {meta['displayed_at']}  (Web tab -> Advanced -> Custom display date)")
     if meta.get("web_only"):
         print("  Audience      : WEB ONLY — uncheck all Email Audience options (backfill, no email sent)")
+
+    errors, warnings = qa(html)
+    print()
+    if errors:
+        print("QA ERRORS (fix before sending):")
+        for e in errors:
+            print(f"  ✗ {e}")
+    if warnings:
+        print("QA warnings:")
+        for w in warnings:
+            print(f"  ! {w}")
+    if not errors and not warnings:
+        print("QA: clean.")
 
 
 if __name__ == "__main__":

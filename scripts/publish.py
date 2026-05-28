@@ -17,7 +17,7 @@ from beehiiv_client import create_post, get_post
 
 def main(md_path: str) -> None:
     meta, body_md = parse(md_path)
-    html = md_to_beehiiv_html(body_md)
+    html = md_to_beehiiv_html(body_md, meta=meta)
     res = create_post(
         title=meta["title"],
         html=html,

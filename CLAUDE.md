@@ -37,20 +37,41 @@ To add past issues without emailing current subscribers:
 |---|---|
 | `drafts/*.md` | Source issues. Markdown + YAML frontmatter (see example). |
 | `rendered/*.html` | Generated. Body to paste + browser preview. Gitignored. |
-| `scripts/render.py` | Markdown → paste-ready beehiiv HTML. **Works on any plan.** |
+| `scripts/render.py` | Markdown → paste-ready beehiiv HTML + QA lint. **Works on any plan.** |
 | `scripts/publish.py` | Markdown → API post. **Enterprise only** (else 403). |
 | `scripts/verify.py` | Read-only connection check; lists recent posts. |
 | `scripts/beehiiv_client.py` | Thin REST client. Reads work on any paid plan. |
-| `scripts/md_to_beehiiv_html.py` | Inline-style renderer. Edit `INLINE` to restyle. |
+| `scripts/md_to_beehiiv_html.py` | Bulletproof template renderer + `qa()` linter. |
+| `scripts/brand.yaml` | **Brand tokens** (name, colors, fonts, logo). Edit to restyle. |
+| `docs/email-template.md` | Full template spec: constraints, palette, fonts, QA. |
 | `.mcp.json` | Wires the official beehiiv MCP (read-only analytics) into Claude. |
+
+## The HTML template (Tank Mix)
+
+`md_to_beehiiv_html.py` renders a **bulletproof body fragment**: table-first,
+single-column, 600px, 100% inline styles, MSO ghost table + VML buttons for
+classic Outlook, dark-mode-resilient palette. Full spec in `docs/email-template.md`.
+
+- **Restyle the whole newsletter** by editing `scripts/brand.yaml` — never
+  hand-edit styles in the Python.
+- **Buttons:** write a Markdown link with the title `button`:
+  `[Read the full issue](https://... "button")`.
+- **Headings** start at `##` (beehiiv supplies the H1 post title).
+- `render.py` prints QA errors/warnings (size, stripped tags, non-HTTPS images,
+  missing alt/dimensions, em dashes). Fix errors before sending.
+- The machine checks are a subset; still do the manual client tests in
+  `docs/email-template.md` (Gmail, Apple Mail, classic + new Outlook) on a real
+  test send before a big send.
 
 ## Draft frontmatter keys
 
 ```yaml
 title:        "Issue #N — ..."     # required
 subject:      "..."                 # email subject; defaults to title
-preview:      "..."                 # inbox preview text
+preview:      "..."                 # inbox preview text (fallback for preheader)
+preheader:    "..."                 # hidden inbox preview line; ≤100 chars
 slug:         "issue-n-..."         # web URL slug
+issue_number: 1                     # shown in the wordmark meta line
 displayed_at: "2026-05-01T13:00:00Z" # ISO-8601 UTC; visible date (backfill)
 scheduled_at: "2026-06-04T13:00:00Z" # future send time (API path only)
 web_only:     true                  # true = no email sent (use for backfill)
