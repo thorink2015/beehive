@@ -1,9 +1,19 @@
 """Render Markdown into a bulletproof, beehiiv-safe HTML body fragment.
 
-Implements the Tank Mix template spec (see docs/email-template.md):
-table-first single-column layout, 100% inline styles, MSO ghost table + VML
-buttons for classic Outlook, dark-mode-resilient palette. Output is a BODY
-FRAGMENT ONLY (no doctype/html/head/body) — beehiiv supplies the outer shell.
+Implements the Tank Mix template (see docs/email-template.md): table-first
+single-column layout, 100% inline styles, MSO ghost table + VML buttons for
+classic Outlook, dark-mode-resilient palette. Output is a BODY FRAGMENT ONLY
+(no doctype/html/head/body) — beehiiv supplies the outer shell.
+
+Segment system — each newsletter category gets its own visual treatment:
+  ## Segment Name        -> uppercase section label + divider (divides categories)
+  ### Subhead            -> serif subsection heading
+  :::intro [label]       -> "from the cab" opener (accent bar + kicker)
+  :::stat [big number]   -> hero number callout (e.g. one $/acre figure)
+  :::quote               -> operator pull-quote; "~ Name, Company" line = attribution
+  :::note                -> bordered callout box (regs, checklists)
+  :::sponsor [label]     -> dashed sponsor box
+  [label](url "button")  -> VML-hybrid CTA button
 
 Brand values come from scripts/brand.yaml; pass `tokens=` to override per call.
 """
@@ -18,7 +28,6 @@ from bleach.css_sanitizer import CSSSanitizer
 
 _HERE = pathlib.Path(__file__).parent
 
-# Tags beehiiv keeps and we style. Everything else is stripped from the body.
 ALLOWED_TAGS = [
     "h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "blockquote",
     "strong", "em", "a", "img", "hr", "br", "code", "pre", "span",
@@ -31,11 +40,11 @@ ALLOWED_ATTRS = {
 _CSS = CSSSanitizer(allowed_css_properties=[
     "color", "background-color", "font-family", "font-size", "font-weight",
     "font-style", "line-height", "text-align", "text-decoration",
-    "text-underline-offset", "letter-spacing", "margin", "margin-top",
-    "margin-bottom", "padding", "padding-left", "padding-right", "padding-top",
-    "padding-bottom", "border", "border-top", "border-left", "border-radius",
-    "width", "max-width", "height", "display", "mso-line-height-rule",
-    "-webkit-text-size-adjust", "-ms-interpolation-mode",
+    "text-underline-offset", "letter-spacing", "text-transform", "margin",
+    "margin-top", "margin-bottom", "padding", "padding-left", "padding-right",
+    "padding-top", "padding-bottom", "border", "border-top", "border-left",
+    "border-radius", "width", "max-width", "height", "display",
+    "mso-line-height-rule", "-webkit-text-size-adjust", "-ms-interpolation-mode",
 ])
 
 DEFAULT_TOKENS = {
@@ -82,9 +91,13 @@ def _styles(t):
             "mso-line-height-rule:exactly;")
     return {
         "h1": f"margin:0 0 16px 0;{head}font-size:30px;line-height:36px;letter-spacing:-0.2px;",
-        "h2": f"margin:32px 0 12px 0;{head}font-size:22px;line-height:29px;letter-spacing:-0.1px;",
-        "h3": f"margin:24px 0 8px 0;{head}font-size:18px;line-height:24px;",
-        "h4": f"margin:20px 0 8px 0;{head}font-size:16px;line-height:22px;",
+        # h2 = segment label: uppercase kicker + divider (text uppercased in _inject)
+        "h2": (f"margin:40px 0 14px 0;padding-top:24px;border-top:1px solid {t['border']};"
+               f"font-family:{t['font_body']};font-size:14px;line-height:18px;font-weight:700;"
+               f"letter-spacing:1.4px;text-transform:uppercase;color:{t['accent']};"
+               "mso-line-height-rule:exactly;-webkit-text-size-adjust:none;"),
+        "h3": f"margin:22px 0 8px 0;{head}font-size:18px;line-height:24px;",
+        "h4": f"margin:18px 0 8px 0;{head}font-size:16px;line-height:22px;",
         "p":  f"margin:0 0 18px 0;{body}font-size:17px;line-height:27px;color:{t['ink']};",
         "ul": f"margin:0 0 18px 0;padding-left:24px;{body}font-size:17px;line-height:27px;color:{t['ink']};",
         "ol": f"margin:0 0 18px 0;padding-left:24px;{body}font-size:17px;line-height:27px;color:{t['ink']};",
@@ -105,13 +118,18 @@ def _styles(t):
 _TAG_RE = {tag: re.compile(rf"<{tag}(\s|>)") for tag in
            ["h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "blockquote",
             "a", "code", "img", "hr"]}
+_H2_TEXT_RE = re.compile(r"(<h2[^>]*>)(.*?)(</h2>)", re.S)
 
 
 def _inject(html, styles):
     for tag, rx in _TAG_RE.items():
         style = styles[tag]
         html = rx.sub(lambda m, s=style, t=tag: f'<{t} style="{s}"{m.group(1)}', html)
-    # Promote the first paragraph to "lead" size.
+    # Uppercase plain-text segment labels (skip if they contain markup).
+    html = _H2_TEXT_RE.sub(
+        lambda m: m.group(1) + (m.group(2).upper() if "<" not in m.group(2) else m.group(2)) + m.group(3),
+        html,
+    )
     html = html.replace(f'<p style="{styles["p"]}"', f'<p style="{styles["lead"]}"', 1)
     return html
 
@@ -149,19 +167,120 @@ def _render_buttons(html, t):
         return f"\x00BTN{len(buttons) - 1}\x00"
 
     html = _ANCHOR_RE.sub(stash, html)
-    # A <table> can't live inside a <p>: unwrap paragraphs that hold only a button.
     html = re.sub(r"<p\b[^>]*>\s*(\x00BTN\d+\x00)\s*</p>", r"\1", html)
     for i, btn in enumerate(buttons):
         html = html.replace(f"\x00BTN{i}\x00", btn)
     return html
 
 
-def _render_body(md_text, t):
+# ── block-level + inline helpers (no directive parsing) ───────────────────
+def _render_fragment(md_text, t):
     raw = markdown.markdown(md_text, extensions=["extra", "sane_lists"])
     clean = bleach.clean(raw, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS,
                          css_sanitizer=_CSS, strip=True)
-    styled = _inject(clean, _styles(t))
-    return _render_buttons(styled, t)
+    return _render_buttons(_inject(clean, _styles(t)), t)
+
+
+def _inline(md_text, t):
+    frag = _render_fragment(md_text, t)
+    m = re.match(r"\s*<p[^>]*>(.*)</p>\s*$", frag, re.S)
+    return (m.group(1) if m else frag).strip()
+
+
+# ── segment components (directives) ───────────────────────────────────────
+def _intro(arg, inner, t):
+    label = (arg.strip() or "FROM THE CAB").upper()
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px 0;width:100%;">'
+            f'<tr><td style="padding:0 0 0 18px;border-left:3px solid {t["accent"]};">'
+            f'<div style="font-family:{t["font_body"]};font-size:13px;font-weight:700;letter-spacing:1.4px;'
+            f'color:{t["accent"]};margin:0 0 10px 0;-webkit-text-size-adjust:none;">{label}</div>'
+            f'{_render_fragment(inner, t)}</td></tr></table>')
+
+
+def _stat(arg, inner, t):
+    arg = arg.strip()
+    lines = inner.split("\n")
+    if arg:
+        number, caption_md = arg, inner
+    else:
+        idx = next((k for k, l in enumerate(lines) if l.strip()), None)
+        number = lines[idx].strip() if idx is not None else ""
+        caption_md = "\n".join(lines[idx + 1:]) if idx is not None else ""
+    cap = ""
+    if caption_md.strip():
+        cap = (f'<div style="font-family:{t["font_body"]};font-size:14px;line-height:20px;'
+               f'color:{t["muted"]};margin-top:8px;-webkit-text-size-adjust:none;">{_inline(caption_md, t)}</div>')
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px 0;width:100%;">'
+            f'<tr><td style="background-color:{t["bg_canvas"]};border-left:4px solid {t["accent"]};padding:18px 20px;">'
+            f'<div style="font-family:{t["font_heading"]};font-size:34px;line-height:40px;font-weight:700;'
+            f'color:{t["accent"]};mso-line-height-rule:exactly;">{_inline(number, t)}</div>{cap}</td></tr></table>')
+
+
+def _quote(arg, inner, t):
+    body, attrib = [], ""
+    for line in inner.split("\n"):
+        s = line.strip()
+        if not s:
+            continue
+        if s.startswith("~"):
+            attrib = s.lstrip("~").strip()
+        else:
+            body.append(s)
+    att = ""
+    if attrib:
+        att = (f'<div style="font-family:{t["font_body"]};font-size:14px;line-height:20px;'
+               f'color:{t["muted"]};margin-top:12px;-webkit-text-size-adjust:none;">{_inline(attrib, t)}</div>')
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px 0;width:100%;">'
+            f'<tr><td style="padding:4px 0 4px 20px;border-left:3px solid {t["accent"]};">'
+            f'<div style="font-family:{t["font_heading"]};font-style:italic;font-size:21px;line-height:30px;'
+            f'color:{t["ink_soft"]};mso-line-height-rule:exactly;">{_inline(" ".join(body), t)}</div>{att}</td></tr></table>')
+
+
+def _note(arg, inner, t):
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px 0;width:100%;">'
+            f'<tr><td style="background-color:{t["bg_canvas"]};border:1px solid {t["border"]};border-radius:6px;'
+            f'padding:18px 20px 2px 20px;">{_render_fragment(inner, t)}</td></tr></table>')
+
+
+def _sponsor(arg, inner, t):
+    label = (arg.strip() or "SPONSORED").upper()
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px 0;width:100%;">'
+            f'<tr><td style="background-color:{t["bg_canvas"]};border:1px dashed {t["accent"]};border-radius:6px;'
+            f'padding:6px 20px 2px 20px;">'
+            f'<div style="font-family:{t["font_body"]};font-size:11px;font-weight:700;letter-spacing:1.5px;'
+            f'color:{t["muted"]};margin:12px 0 4px 0;-webkit-text-size-adjust:none;">{label}</div>'
+            f'{_render_fragment(inner, t)}</td></tr></table>')
+
+
+_DIRECTIVES = {"intro": _intro, "stat": _stat, "quote": _quote, "note": _note, "sponsor": _sponsor}
+_FENCE_RE = re.compile(r"^:::\s*(\w+)\s*(.*)$")
+
+
+def _build_body(md_text, t):
+    lines = md_text.split("\n")
+    out, blocks, i = [], [], 0
+    while i < len(lines):
+        m = _FENCE_RE.match(lines[i].strip())
+        if m:
+            kind, arg = m.group(1).lower(), m.group(2)
+            inner, i = [], i + 1
+            while i < len(lines) and lines[i].strip() != ":::":
+                inner.append(lines[i])
+                i += 1
+            i += 1  # skip closing :::
+            fn = _DIRECTIVES.get(kind)
+            html = fn(arg, "\n".join(inner), t) if fn else _render_fragment("\n".join(inner), t)
+            out += ["", f"DIRBLOCK{len(blocks)}MARKER", ""]
+            blocks.append(html)
+        else:
+            out.append(lines[i])
+            i += 1
+
+    html = _render_fragment("\n".join(out), t)
+    html = re.sub(r"<p\b[^>]*>\s*(DIRBLOCK\d+MARKER)\s*</p>", r"\1", html)
+    for j, block in enumerate(blocks):
+        html = html.replace(f"DIRBLOCK{j}MARKER", block)
+    return html
 
 
 def _fmt_date(iso):
@@ -195,11 +314,9 @@ def _issue_label(meta):
 
 
 def _wrapper(body_html, meta, t):
-    pad = t["pad_card_px"]
-    cp = f"{pad}px"
+    cp = f"{t['pad_card_px']}px"
     canvas, card, border, muted = t["bg_canvas"], t["bg_card"], t["border"], t["muted"]
-    fb = t["font_body"]
-    mw = t["max_width_px"]
+    fb, mw = t["font_body"], t["max_width_px"]
 
     preheader = meta.get("preheader") or meta.get("preview") or ""
     pre_html = ""
@@ -251,7 +368,7 @@ def _wrapper(body_html, meta, t):
 
 def md_to_beehiiv_html(md_text, meta=None, tokens=None):
     t = load_tokens(tokens)
-    return _wrapper(_render_body(md_text, t), meta or {}, t)
+    return _wrapper(_build_body(md_text, t), meta or {}, t)
 
 
 # ── QA linter (machine-checkable subset of the pre-send checklist) ─────────

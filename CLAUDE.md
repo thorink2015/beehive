@@ -54,9 +54,27 @@ classic Outlook, dark-mode-resilient palette. Full spec in `docs/email-template.
 
 - **Restyle the whole newsletter** by editing `scripts/brand.yaml` — never
   hand-edit styles in the Python.
-- **Buttons:** write a Markdown link with the title `button`:
-  `[Read the full issue](https://... "button")`.
 - **Headings** start at `##` (beehiiv supplies the H1 post title).
+
+### Segment system (each category gets its own treatment)
+
+Every `##` becomes an uppercase **section label** with a divider, so categories
+read as distinct blocks. Specific content types use directive blocks
+(`:::type ... :::`):
+
+| Directive | Use for | Notes |
+|---|---|---|
+| `:::intro [label]` | "From the cab" opener | accent bar + kicker label (default FROM THE CAB) |
+| `:::stat [big number]` | The Going Rate / any hero figure | big number; lines below it = caption |
+| `:::quote` | Heard at the Headland | a line starting `~` is the attribution |
+| `:::note` | The Fine Print / checklists | bordered callout box; takes full Markdown |
+| `:::sponsor [label]` | sponsor line | dashed box (default label SPONSORED) |
+| `[label](url "button")` | any CTA | VML-hybrid button |
+
+Segment → component map: From the cab → `:::intro`; The Going Rate → `:::stat`;
+Heard at the Headland → `:::quote`; The Fine Print checklist → `:::note`;
+sponsor line → `:::sponsor`. The Window / China Watch / Tailgate are plain
+`##` + paragraphs. Drafts live in `drafts/` (see the two example issues).
 - `render.py` prints QA errors/warnings (size, stripped tags, non-HTTPS images,
   missing alt/dimensions, em dashes). Fix errors before sending.
 - The machine checks are a subset; still do the manual client tests in
