@@ -53,6 +53,7 @@ DEFAULT_TOKENS = {
     "logo_url": "",
     "logo_width_px": 140,
     "footer_note": "",
+    "tagline": "Weekly, for ag drone operators",
     "ink": "#1A1A1A",
     "ink_soft": "#3B3B3B",
     "muted": "#6B6B6B",
@@ -371,24 +372,40 @@ def _fmt_date(iso):
         return ""
 
 
-def _wordmark(t):
+def _masthead(meta, t):
     if t.get("logo_url"):
-        return (f'<img src="{t["logo_url"]}" alt="{t["brand_name"]}" '
-                f'width="{t["logo_width_px"]}" '
-                f'style="display:block;border:0;width:{t["logo_width_px"]}px;height:auto;">')
-    return (f'<span style="display:inline-block;padding:4px 10px;background-color:{t["bg_canvas"]};'
-            f'color:{t["accent"]};font-family:{t["font_heading"]};font-size:24px;font-weight:700;'
-            f'letter-spacing:0.5px;border:1px solid {t["accent"]};">{t["brand_name"].replace(" ", "&nbsp;")}</span>')
+        brand = (f'<img src="{t["logo_url"]}" alt="{t["brand_name"]}" width="{t["logo_width_px"]}" '
+                 f'style="display:block;border:0;width:{t["logo_width_px"]}px;height:auto;">')
+    else:
+        initial = t["brand_name"].strip()[:1].upper()
+        tile = (f'<td valign="middle" width="40" height="40" align="center" bgcolor="{t["accent"]}" '
+                f'style="width:40px;height:40px;background-color:{t["accent"]};border-radius:9px;'
+                f'color:{t["bg_canvas"]};font-family:{t["font_heading"]};font-size:22px;font-weight:700;'
+                f'line-height:40px;text-align:center;mso-line-height-rule:exactly;">{initial}</td>')
+        name = (f'<div style="font-family:{t["font_heading"]};font-size:23px;font-weight:700;color:{t["ink"]};'
+                f'line-height:25px;letter-spacing:0.2px;white-space:nowrap;mso-line-height-rule:exactly;">{t["brand_name"]}</div>')
+        tag = ""
+        if t.get("tagline"):
+            tag = (f'<div style="font-family:{t["font_body"]};font-size:11px;font-weight:700;letter-spacing:1.3px;'
+                   f'text-transform:uppercase;color:{t["muted"]};margin-top:4px;-webkit-text-size-adjust:none;">{t["tagline"]}</div>')
+        brand = (f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>{tile}'
+                 f'<td valign="middle" style="padding-left:12px;">{name}{tag}</td></tr></table>')
+    brand = f'<a href="{t["website_url"]}" style="text-decoration:none;">{brand}</a>'
 
-
-def _issue_label(meta):
     bits = []
     if meta.get("issue_number"):
         bits.append(f"Issue {meta['issue_number']}")
     date = meta.get("issue_date") or _fmt_date(meta.get("displayed_at") or meta.get("scheduled_at"))
     if date:
         bits.append(date)
-    return " &middot; ".join(bits)
+    right = ""
+    if bits:
+        right = (f'<div style="font-family:{t["font_body"]};font-size:12px;line-height:18px;color:{t["muted"]};'
+                 f'white-space:nowrap;-webkit-text-size-adjust:none;">{"<br>".join(bits)}</div>')
+
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">'
+            f'<tr><td valign="middle" align="left">{brand}</td>'
+            f'<td valign="middle" align="right">{right}</td></tr></table>')
 
 
 def _wrapper(body_html, meta, t):
@@ -404,14 +421,9 @@ def _wrapper(body_html, meta, t):
                     f'font-size:1px;color:{canvas};line-height:1px;max-height:0;max-width:0;'
                     f'opacity:0;overflow:hidden;">{preheader} {spacer}</div>\n')
 
-    label = _issue_label(meta)
-    meta_html = ""
-    if label:
-        meta_html = (f'<div style="font-family:{fb};font-size:12px;color:{muted};'
-                     f'margin-top:8px;-webkit-text-size-adjust:none;">{label}</div>')
-
+    masthead = _masthead(meta, t)
     footer = t.get("footer_note") or f"Thanks for reading {t['brand_name']}."
-    wordmark = _wordmark(t)
+    site = re.sub(r"^https?://", "", t["website_url"]).rstrip("/")
 
     return f"""<div style="color-scheme:light dark;supported-color-schemes:light dark;">
 {pre_html}<!--[if mso]>
@@ -423,18 +435,18 @@ def _wrapper(body_html, meta, t):
 <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" width="{mw}"><tr><td>
 <![endif]-->
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:{mw}px;background-color:{card};border:1px solid {border};">
-<tr><td style="padding:{cp} {cp} 8px {cp};">
-<a href="{t['website_url']}" style="text-decoration:none;color:{t['accent']};">{wordmark}</a>
-{meta_html}
+<tr><td style="padding:{cp} {cp} 0 {cp};">
+{masthead}
 </td></tr>
 <tr><td style="padding:0 {cp};">
-<hr style="border:0;border-top:1px solid {border};margin:16px 0 24px 0;height:0;line-height:0;font-size:0;">
+<hr style="border:0;border-top:1px solid {border};margin:22px 0 26px 0;height:0;line-height:0;font-size:0;">
 </td></tr>
 <tr><td style="padding:0 {cp} {cp} {cp};">
 {body_html}
 </td></tr>
 <tr><td style="padding:0 {cp} {cp} {cp};border-top:1px solid {border};">
 <p style="font-family:{fb};font-size:13px;line-height:21px;color:{muted};margin:24px 0 0 0;-webkit-text-size-adjust:none;mso-line-height-rule:exactly;">{footer}</p>
+<p style="font-family:{fb};font-size:12px;line-height:18px;color:{muted};margin:6px 0 0 0;-webkit-text-size-adjust:none;mso-line-height-rule:exactly;"><a href="{t['website_url']}" style="color:{muted};text-decoration:underline;">{site}</a></p>
 </td></tr>
 </table>
 <!--[if mso | IE]>

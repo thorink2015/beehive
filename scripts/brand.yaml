@@ -2,6 +2,7 @@
 # To rebrand: change brand_name, accent, fonts, logo_url. Nothing else required.
 
 brand_name:   "Tank Mix"
+tagline:      "Weekly, for ag drone operators"
 website_url:  "https://tankmix.example/"
 
 # Logo: leave logo_url empty to render a styled text wordmark (recommended until
@@ -25,8 +26,8 @@ border:         "#E5E1D6"   # dividers, hr, card border
 
 # Layout
 max_width_px:   600
-pad_outer:      "24px 12px"
-pad_card_px:    32
+pad_outer:      "24px 10px"
+pad_card_px:    28
 
 # Fonts
 font_heading:   "Georgia, 'Times New Roman', 'Iowan Old Style', serif"
