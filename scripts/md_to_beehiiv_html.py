@@ -129,12 +129,14 @@ def _inject(html, styles):
 # Colors are muted, earthy, and all pass WCAG AA on white. White-on-chip too.
 SEGMENT_STYLES = {
     "the window":            ("W", "#2E5A1C"),  # brand green
+    "by the numbers":        ("#", "#2C5366"),  # steel-blue
     "the going rate":        ("$", "#6E5210"),  # ochre
     "the fine print":        ("§", "#34495E"),  # slate, section sign
     "the china watch":       ("C", "#8C3B2B"),  # brick
+    "open acres":            ("A", "#5A6B1C"),  # olive
     "heard at the headland": ("“", "#5B4636"),  # warm brown, open quote
     "the tailgate":          ("★", "#8A4A10"),  # burnt orange, star
-    "open acres":            ("A", "#5A6B1C"),  # olive
+    "watch this":            ("▶", "#8C3B2B"),  # play triangle
     "tank talk":             ("T", "#1F5C58"),  # teal
     "in the cab":            ("P", "#2E5A1C"),
     "rate map":              ("M", "#6E5210"),
@@ -153,22 +155,21 @@ def _segment_lookup(text, t):
 
 
 def _section_header(text, t):
+    """Minimal, Apple-leaning section marker: a thin rule, then a colored
+    monogram glyph beside an uppercase colored label. No filled chip."""
     label = re.sub(r"<[^>]+>", "", text).strip().upper()
     mono, color = _segment_lookup(text, t)
     return (
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;">'
-        f'<tr><td height="32" style="height:32px;font-size:0;line-height:32px;">&nbsp;</td></tr>'
-        f'<tr><td style="border-top:1px solid {t["border"]};padding-top:18px;">'
+        f'<tr><td height="38" style="height:38px;font-size:0;line-height:38px;">&nbsp;</td></tr>'
+        f'<tr><td style="border-top:1px solid {t["border"]};padding-top:16px;">'
         f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-        f'<td width="30" height="30" align="center" valign="middle" bgcolor="{color}" '
-        f'style="width:30px;height:30px;background-color:{color};border-radius:6px;color:#FFFFFF;'
-        f'font-family:{t["font_heading"]};font-size:15px;font-weight:700;line-height:30px;'
-        f'text-align:center;mso-line-height-rule:exactly;">{mono}</td>'
-        f'<td valign="middle" style="padding-left:12px;font-family:{t["font_body"]};font-size:14px;'
-        f'font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:{color};'
-        f'-webkit-text-size-adjust:none;">{label}</td>'
+        f'<td valign="middle" style="padding-right:10px;font-family:{t["font_heading"]};font-size:19px;'
+        f'font-weight:700;line-height:22px;color:{color};mso-line-height-rule:exactly;">{mono}</td>'
+        f'<td valign="middle" style="font-family:{t["font_body"]};font-size:13px;font-weight:700;'
+        f'letter-spacing:1.6px;text-transform:uppercase;color:{color};-webkit-text-size-adjust:none;">{label}</td>'
         f'</tr></table></td></tr>'
-        f'<tr><td height="12" style="height:12px;font-size:0;line-height:12px;">&nbsp;</td></tr>'
+        f'<tr><td height="10" style="height:10px;font-size:0;line-height:10px;">&nbsp;</td></tr>'
         f'</table>'
     )
 
@@ -282,6 +283,27 @@ def _quote(arg, inner, t):
             f'color:{t["ink_soft"]};mso-line-height-rule:exactly;">{_inline(" ".join(body), t)}</div>{att}</td></tr></table>')
 
 
+def _numbers(arg, inner, t):
+    """Grouped 'by the numbers' list. One entry per line: `figure | caption`."""
+    rows = []
+    for line in inner.split("\n"):
+        s = line.strip()
+        if not s:
+            continue
+        fig, cap = (s.split("|", 1) + [""])[:2]
+        cap_html = ""
+        if cap.strip():
+            cap_html = (f'<div style="font-family:{t["font_body"]};font-size:15px;line-height:22px;'
+                        f'color:{t["ink"]};margin-top:3px;-webkit-text-size-adjust:none;">{_inline(cap.strip(), t)}</div>')
+        top = "" if not rows else f"border-top:1px solid {t['border']};"
+        rows.append(
+            f'<tr><td style="{top}padding:14px 0;">'
+            f'<div style="font-family:{t["font_heading"]};font-size:27px;line-height:31px;font-weight:700;'
+            f'color:{t["accent"]};mso-line-height-rule:exactly;">{_inline(fig.strip(), t)}</div>{cap_html}</td></tr>')
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:8px 0 18px 0;">'
+            + "".join(rows) + "</table>")
+
+
 def _note(arg, inner, t):
     return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px 0;width:100%;">'
             f'<tr><td style="background-color:{t["bg_canvas"]};border:1px solid {t["border"]};border-radius:6px;'
@@ -298,7 +320,16 @@ def _sponsor(arg, inner, t):
             f'{_render_fragment(inner, t)}</td></tr></table>')
 
 
-_DIRECTIVES = {"intro": _intro, "stat": _stat, "quote": _quote, "note": _note, "sponsor": _sponsor}
+_DIRECTIVES = {"intro": _intro, "stat": _stat, "quote": _quote, "note": _note,
+               "sponsor": _sponsor, "numbers": _numbers}
+_SOURCE_RE = re.compile(r'<p style="[^"]*">\s*<em[^>]*>\s*(Source:.*?)\s*</em>\s*</p>', re.S | re.I)
+
+
+def _style_sources(html, t):
+    """Render a standalone italic 'Source: ...' line as a small muted caption."""
+    repl = (f'<p style="font-family:{t["font_body"]};font-size:13px;line-height:18px;color:{t["muted"]};'
+            f'margin:-6px 0 18px 0;-webkit-text-size-adjust:none;">\\1</p>')
+    return _SOURCE_RE.sub(repl, html)
 _FENCE_RE = re.compile(r"^:::\s*(\w+)\s*(.*)$")
 
 
@@ -326,6 +357,7 @@ def _build_body(md_text, t):
     html = re.sub(r"<p\b[^>]*>\s*(DIRBLOCK\d+MARKER)\s*</p>", r"\1", html)
     for j, block in enumerate(blocks):
         html = html.replace(f"DIRBLOCK{j}MARKER", block)
+    html = _style_sources(html, t)
     return _render_section_headers(html, t)
 
 

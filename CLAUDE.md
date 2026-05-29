@@ -70,10 +70,14 @@ directive blocks (`:::type ... :::`):
 |---|---|---|
 | `:::intro [label]` | "From the cab" opener | accent bar + kicker label (default FROM THE CAB) |
 | `:::stat [big number]` | The Going Rate / any hero figure | big number; lines below it = caption |
+| `:::numbers` | By the Numbers | one entry per line: `figure \| caption`; hairline-separated |
 | `:::quote` | Heard at the Headland | a line starting `~` is the attribution |
 | `:::note` | The Fine Print / checklists | bordered callout box; takes full Markdown |
 | `:::sponsor [label]` | sponsor line | dashed box (default label SPONSORED) |
-| `[label](url "button")` | any CTA | VML-hybrid button |
+| `[label](url "button")` | any CTA (Watch This video, etc.) | VML-hybrid button |
+
+A standalone italic line like `*Source: AgWeb*` is auto-styled as a small muted
+caption under a segment.
 
 Segment → component map: From the cab → `:::intro`; The Going Rate → `:::stat`;
 Heard at the Headland → `:::quote`; The Fine Print checklist → `:::note`;
