@@ -91,11 +91,7 @@ def _styles(t):
             "mso-line-height-rule:exactly;")
     return {
         "h1": f"margin:0 0 16px 0;{head}font-size:30px;line-height:36px;letter-spacing:-0.2px;",
-        # h2 = segment label: uppercase kicker + divider (text uppercased in _inject)
-        "h2": (f"margin:40px 0 14px 0;padding-top:24px;border-top:1px solid {t['border']};"
-               f"font-family:{t['font_body']};font-size:14px;line-height:18px;font-weight:700;"
-               f"letter-spacing:1.4px;text-transform:uppercase;color:{t['accent']};"
-               "mso-line-height-rule:exactly;-webkit-text-size-adjust:none;"),
+        # h2 is rendered as a per-category section header (see _section_header).
         "h3": f"margin:22px 0 8px 0;{head}font-size:18px;line-height:24px;",
         "h4": f"margin:18px 0 8px 0;{head}font-size:16px;line-height:22px;",
         "p":  f"margin:0 0 18px 0;{body}font-size:17px;line-height:27px;color:{t['ink']};",
@@ -116,22 +112,72 @@ def _styles(t):
 
 
 _TAG_RE = {tag: re.compile(rf"<{tag}(\s|>)") for tag in
-           ["h1", "h2", "h3", "h4", "p", "ul", "ol", "li", "blockquote",
+           ["h1", "h3", "h4", "p", "ul", "ol", "li", "blockquote",
             "a", "code", "img", "hr"]}
-_H2_TEXT_RE = re.compile(r"(<h2[^>]*>)(.*?)(</h2>)", re.S)
 
 
 def _inject(html, styles):
     for tag, rx in _TAG_RE.items():
         style = styles[tag]
         html = rx.sub(lambda m, s=style, t=tag: f'<{t} style="{s}"{m.group(1)}', html)
-    # Uppercase plain-text segment labels (skip if they contain markup).
-    html = _H2_TEXT_RE.sub(
-        lambda m: m.group(1) + (m.group(2).upper() if "<" not in m.group(2) else m.group(2)) + m.group(3),
-        html,
-    )
     html = html.replace(f'<p style="{styles["p"]}"', f'<p style="{styles["lead"]}"', 1)
     return html
+
+
+# ── per-category section markers (monogram chip + accent color) ───────────
+# Each known segment gets a distinct, subtle identity. Edit/extend freely.
+# Colors are muted, earthy, and all pass WCAG AA on white. White-on-chip too.
+SEGMENT_STYLES = {
+    "the window":            ("W", "#2E5A1C"),  # brand green
+    "the going rate":        ("$", "#6E5210"),  # ochre
+    "the fine print":        ("§", "#34495E"),  # slate, section sign
+    "the china watch":       ("C", "#8C3B2B"),  # brick
+    "heard at the headland": ("“", "#5B4636"),  # warm brown, open quote
+    "the tailgate":          ("★", "#8A4A10"),  # burnt orange, star
+    "open acres":            ("A", "#5A6B1C"),  # olive
+    "tank talk":             ("T", "#1F5C58"),  # teal
+    "in the cab":            ("P", "#2E5A1C"),
+    "rate map":              ("M", "#6E5210"),
+    "gear teardown":         ("G", "#4A5568"),  # steel
+    "the bonus hustle":      ("H", "#3F6B1C"),
+    "the books":             ("B", "#34495E"),
+}
+
+
+def _segment_lookup(text, t):
+    key = re.sub(r"<[^>]+>", "", text).strip().lower()
+    if key in SEGMENT_STYLES:
+        return SEGMENT_STYLES[key]
+    core = re.sub(r"^the\s+", "", key)
+    return (core[:1].upper() if core else "▪", t["accent"])
+
+
+def _section_header(text, t):
+    label = re.sub(r"<[^>]+>", "", text).strip().upper()
+    mono, color = _segment_lookup(text, t)
+    return (
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;">'
+        f'<tr><td height="32" style="height:32px;font-size:0;line-height:32px;">&nbsp;</td></tr>'
+        f'<tr><td style="border-top:1px solid {t["border"]};padding-top:18px;">'
+        f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td width="30" height="30" align="center" valign="middle" bgcolor="{color}" '
+        f'style="width:30px;height:30px;background-color:{color};border-radius:6px;color:#FFFFFF;'
+        f'font-family:{t["font_heading"]};font-size:15px;font-weight:700;line-height:30px;'
+        f'text-align:center;mso-line-height-rule:exactly;">{mono}</td>'
+        f'<td valign="middle" style="padding-left:12px;font-family:{t["font_body"]};font-size:14px;'
+        f'font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:{color};'
+        f'-webkit-text-size-adjust:none;">{label}</td>'
+        f'</tr></table></td></tr>'
+        f'<tr><td height="12" style="height:12px;font-size:0;line-height:12px;">&nbsp;</td></tr>'
+        f'</table>'
+    )
+
+
+_H2_RE = re.compile(r"<h2\b[^>]*>(.*?)</h2>", re.S)
+
+
+def _render_section_headers(html, t):
+    return _H2_RE.sub(lambda m: _section_header(m.group(1), t), html)
 
 
 # ── VML-hybrid CTA button ─────────────────────────────────────────────────
@@ -280,7 +326,7 @@ def _build_body(md_text, t):
     html = re.sub(r"<p\b[^>]*>\s*(DIRBLOCK\d+MARKER)\s*</p>", r"\1", html)
     for j, block in enumerate(blocks):
         html = html.replace(f"DIRBLOCK{j}MARKER", block)
-    return html
+    return _render_section_headers(html, t)
 
 
 def _fmt_date(iso):

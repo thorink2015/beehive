@@ -58,9 +58,13 @@ classic Outlook, dark-mode-resilient palette. Full spec in `docs/email-template.
 
 ### Segment system (each category gets its own treatment)
 
-Every `##` becomes an uppercase **section label** with a divider, so categories
-read as distinct blocks. Specific content types use directive blocks
-(`:::type ... :::`):
+Every `##` becomes a **per-category section header**: a small colored monogram
+chip + an uppercase label in that category's accent color, over a divider, so
+each category reads as its own block. The chip/color registry is
+`SEGMENT_STYLES` in `md_to_beehiiv_html.py` (e.g. The Going Rate → `$` ochre,
+The Fine Print → `§` slate, The Tailgate → `★` burnt orange). Unknown segments
+fall back to the brand green + their first initial. Specific content types use
+directive blocks (`:::type ... :::`):
 
 | Directive | Use for | Notes |
 |---|---|---|
