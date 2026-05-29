@@ -327,8 +327,14 @@ def _sponsor(arg, inner, t):
             f'{_render_fragment(inner, t)}</td></tr></table>')
 
 
+def _raw(arg, inner, t):
+    """Pass inner HTML through verbatim (substituted after sanitizing). Use for
+    a self-branded embedded block such as a sponsor card."""
+    return inner
+
+
 _DIRECTIVES = {"intro": _intro, "stat": _stat, "quote": _quote, "note": _note,
-               "sponsor": _sponsor, "numbers": _numbers}
+               "sponsor": _sponsor, "numbers": _numbers, "raw": _raw}
 _SOURCE_RE = re.compile(r'<p style="[^"]*">\s*<em[^>]*>\s*(Source:.*?)\s*</em>\s*</p>', re.S | re.I)
 
 
