@@ -138,6 +138,7 @@ SEGMENT_STYLES = {
     "heard at the headland": ("“", "#5B4636"),  # warm brown, open quote
     "the tailgate":          ("★", "#8A4A10"),  # burnt orange, star
     "watch this":            ("▶", "#8C3B2B"),  # play triangle
+    "see the data":          ("↗", "#3A4A7A"),  # indigo, trend arrow
     "tank talk":             ("T", "#1F5C58"),  # teal
     "in the cab":            ("P", "#2E5A1C"),
     "rate map":              ("M", "#6E5210"),
