@@ -306,9 +306,14 @@ def _numbers(arg, inner, t):
 
 
 def _note(arg, inner, t):
+    label_html = ""
+    if arg.strip():
+        label_html = (f'<div style="font-family:{t["font_body"]};font-size:11px;font-weight:700;'
+                      f'letter-spacing:1.5px;text-transform:uppercase;color:{t["muted"]};'
+                      f'margin:2px 0 10px 0;-webkit-text-size-adjust:none;">{arg.strip().upper()}</div>')
     return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px 0;width:100%;">'
             f'<tr><td style="background-color:{t["bg_canvas"]};border:1px solid {t["border"]};border-radius:6px;'
-            f'padding:18px 20px 2px 20px;">{_render_fragment(inner, t)}</td></tr></table>')
+            f'padding:18px 20px 2px 20px;">{label_html}{_render_fragment(inner, t)}</td></tr></table>')
 
 
 def _sponsor(arg, inner, t):
