@@ -1,0 +1,5 @@
+requests>=2.31
+python-dotenv>=1.0
+markdown>=3.5
+bleach[css]>=6.1
+PyYAML>=6.0

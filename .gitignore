@@ -1,0 +1,21 @@
+# Secrets — NEVER commit
+.env
+.env.local
+*.key
+
+# Claude Code local auth/state
+.claude.json
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated output (keep the folder, ignore contents)
+rendered/*
+!rendered/.gitkeep
+
+# OS
+.DS_Store
