@@ -157,21 +157,26 @@ def _segment_lookup(text, t):
 
 
 def _section_header(text, t):
-    """Minimal, Apple-leaning section marker: a thin rule, then a colored
-    monogram glyph beside an uppercase colored label. No filled chip."""
+    """One consistent icon system: a colored rounded 'app-icon' tile with a
+    white glyph, a calm near-black label, over a full-width hairline. The tile
+    color + glyph differ per category; everything else is identical."""
     label = re.sub(r"<[^>]+>", "", text).strip().upper()
     mono, color = _segment_lookup(text, t)
     return (
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;">'
-        f'<tr><td height="38" style="height:38px;font-size:0;line-height:38px;">&nbsp;</td></tr>'
-        f'<tr><td style="border-top:1px solid {t["border"]};padding-top:16px;">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0;background:transparent;">'
+        f'<tr><td height="36" style="height:36px;font-size:0;line-height:36px;">&nbsp;</td></tr>'
+        f'<tr><td style="border-top:1px solid {t["border"]};font-size:0;line-height:0;">&nbsp;</td></tr>'
+        f'<tr><td style="padding-top:18px;">'
         f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-        f'<td valign="middle" style="padding-right:10px;font-family:{t["font_heading"]};font-size:19px;'
-        f'font-weight:700;line-height:22px;color:{color};mso-line-height-rule:exactly;">{mono}</td>'
-        f'<td valign="middle" style="font-family:{t["font_body"]};font-size:13px;font-weight:700;'
-        f'letter-spacing:1.6px;text-transform:uppercase;color:{color};-webkit-text-size-adjust:none;">{label}</td>'
+        f'<td width="34" height="34" align="center" valign="middle" bgcolor="{color}" '
+        f'style="width:34px;height:34px;background-color:{color};border-radius:9px;'
+        f'font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;color:#FFFFFF;'
+        f'text-align:center;line-height:34px;mso-line-height-rule:exactly;">{mono}</td>'
+        f'<td valign="middle" style="padding-left:13px;font-family:{t["font_body"]};font-size:14px;'
+        f'font-weight:700;line-height:34px;letter-spacing:1.3px;text-transform:uppercase;color:{t["ink"]};'
+        f'mso-line-height-rule:exactly;-webkit-text-size-adjust:none;">{label}</td>'
         f'</tr></table></td></tr>'
-        f'<tr><td height="10" style="height:10px;font-size:0;line-height:10px;">&nbsp;</td></tr>'
+        f'<tr><td height="14" style="height:14px;font-size:0;line-height:14px;">&nbsp;</td></tr>'
         f'</table>'
     )
 
@@ -183,18 +188,17 @@ def _render_section_headers(html, t):
     return _H2_RE.sub(lambda m: _section_header(m.group(1), t), html)
 
 
-# ── VML-hybrid CTA button ─────────────────────────────────────────────────
+# ── VML-hybrid pill CTA button (centered) ─────────────────────────────────
 def render_button(href, label, t):
-    w, h, r = t["button_width_px"], t["button_height_px"], t["button_radius_px"]
-    arc = max(1, round(r / h * 100))
-    return f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="margin:8px 0 24px 0;"><tr><td align="center">
+    color, h = t["accent"], 50
+    return f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:10px auto 24px auto;"><tr><td align="center">
 <!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{href}" style="height:{h}px;v-text-anchor:middle;width:{w}px;" arcsize="{arc}%" stroke="f" fillcolor="{t['accent']}">
-<w:anchorlock/><center style="color:#FFFFFF;font-family:{t['font_heading']};font-size:16px;font-weight:700;letter-spacing:0.3px;">{label}</center>
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{href}" style="height:{h}px;v-text-anchor:middle;width:280px;" arcsize="50%" stroke="f" fillcolor="{color}">
+<w:anchorlock/><center style="color:#FFFFFF;font-family:{t['font_body']};font-size:16px;font-weight:bold;">{label}</center>
 </v:roundrect>
 <![endif]-->
 <!--[if !mso]><!-- -->
-<a href="{href}" style="background-color:{t['accent']};border:1px solid {t['accent']};border-radius:{r}px;color:#FFFFFF;display:inline-block;font-family:{t['font_heading']};font-size:16px;font-weight:700;letter-spacing:0.3px;line-height:{h}px;text-align:center;text-decoration:none;width:{w}px;-webkit-text-size-adjust:none;">{label}</a>
+<a href="{href}" style="background-color:{color};border-radius:999px;color:#FFFFFF;display:inline-block;font-family:{t['font_body']};font-size:16px;font-weight:bold;line-height:20px;padding:15px 38px;text-align:center;text-decoration:none;-webkit-text-size-adjust:none;">{label}</a>
 <!--<![endif]--></td></tr></table>"""
 
 
@@ -257,12 +261,12 @@ def _stat(arg, inner, t):
         caption_md = "\n".join(lines[idx + 1:]) if idx is not None else ""
     cap = ""
     if caption_md.strip():
-        cap = (f'<div style="font-family:{t["font_body"]};font-size:14px;line-height:20px;'
-               f'color:{t["muted"]};margin-top:8px;-webkit-text-size-adjust:none;">{_inline(caption_md, t)}</div>')
-    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px 0;width:100%;">'
-            f'<tr><td style="background-color:{t["bg_canvas"]};border-left:4px solid {t["accent"]};padding:18px 20px;">'
-            f'<div style="font-family:{t["font_heading"]};font-size:34px;line-height:40px;font-weight:700;'
-            f'color:{t["accent"]};mso-line-height-rule:exactly;">{_inline(number, t)}</div>{cap}</td></tr></table>')
+        cap = (f'<div style="font-family:{t["font_body"]};font-size:14px;line-height:21px;'
+               f'color:{t["muted"]};margin-top:9px;-webkit-text-size-adjust:none;">{_inline(caption_md, t)}</div>')
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 22px 0;width:100%;background:transparent;">'
+            f'<tr><td style="padding:3px 0 3px 20px;border-left:3px solid {t["accent"]};">'
+            f'<div style="font-family:{t["font_heading"]};font-size:40px;line-height:44px;font-weight:700;'
+            f'color:{t["accent"]};letter-spacing:-0.5px;mso-line-height-rule:exactly;">{_inline(number, t)}</div>{cap}</td></tr></table>')
 
 
 def _quote(arg, inner, t):
@@ -279,9 +283,9 @@ def _quote(arg, inner, t):
     if attrib:
         att = (f'<div style="font-family:{t["font_body"]};font-size:14px;line-height:20px;'
                f'color:{t["muted"]};margin-top:12px;-webkit-text-size-adjust:none;">{_inline(attrib, t)}</div>')
-    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px 0;width:100%;">'
-            f'<tr><td style="padding:4px 0 4px 20px;border-left:3px solid {t["accent"]};">'
-            f'<div style="font-family:{t["font_heading"]};font-style:italic;font-size:21px;line-height:30px;'
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 24px 0;width:100%;background:transparent;">'
+            f'<tr><td style="padding:4px 0 4px 22px;border-left:3px solid {t["accent"]};">'
+            f'<div style="font-family:{t["font_heading"]};font-style:italic;font-size:23px;line-height:33px;'
             f'color:{t["ink_soft"]};mso-line-height-rule:exactly;">{_inline(" ".join(body), t)}</div>{att}</td></tr></table>')
 
 
@@ -312,23 +316,33 @@ def _note(arg, inner, t):
         label_html = (f'<div style="font-family:{t["font_body"]};font-size:11px;font-weight:700;'
                       f'letter-spacing:1.5px;text-transform:uppercase;color:{t["muted"]};'
                       f'margin:2px 0 10px 0;-webkit-text-size-adjust:none;">{arg.strip().upper()}</div>')
-    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 22px 0;width:100%;">'
-            f'<tr><td style="background-color:{t["bg_canvas"]};border:1px solid {t["border"]};border-radius:6px;'
-            f'padding:18px 20px 2px 20px;">{label_html}{_render_fragment(inner, t)}</td></tr></table>')
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 22px 0;width:100%;">'
+            f'<tr><td style="background-color:{t["bg_canvas"]};border-left:3px solid {t["accent"]};border-radius:4px;'
+            f'padding:17px 20px 3px 19px;">{label_html}{_render_fragment(inner, t)}</td></tr></table>')
 
 
 def _sponsor(arg, inner, t):
+    """Blended sponsor: hairlines top and bottom, an uppercase eyebrow, no box.
+    Reads as a marked ad while staying part of the page."""
     label = (arg.strip() or "SPONSORED").upper()
-    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px 0;width:100%;">'
-            f'<tr><td style="background-color:{t["bg_canvas"]};border:1px dashed {t["accent"]};border-radius:6px;'
-            f'padding:6px 20px 2px 20px;">'
+    rule = f'<div style="border-top:1px solid {t["border"]};font-size:0;line-height:0;">&nbsp;</div>'
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:30px 0 14px 0;width:100%;background:transparent;">'
+            f'<tr><td>{rule}'
             f'<div style="font-family:{t["font_body"]};font-size:11px;font-weight:700;letter-spacing:1.5px;'
-            f'color:{t["muted"]};margin:12px 0 4px 0;-webkit-text-size-adjust:none;">{label}</div>'
-            f'{_render_fragment(inner, t)}</td></tr></table>')
+            f'text-transform:uppercase;color:{t["muted"]};margin:18px 0 12px 0;-webkit-text-size-adjust:none;">{label}</div>'
+            f'{_render_fragment(inner, t)}'
+            f'<div style="margin-top:10px;">{rule}</div>'
+            f'</td></tr></table>')
+
+
+def _raw(arg, inner, t):
+    """Pass inner HTML through verbatim (substituted after sanitizing). Use for
+    a self-branded embedded block such as a sponsor card."""
+    return inner
 
 
 _DIRECTIVES = {"intro": _intro, "stat": _stat, "quote": _quote, "note": _note,
-               "sponsor": _sponsor, "numbers": _numbers}
+               "sponsor": _sponsor, "numbers": _numbers, "raw": _raw}
 _SOURCE_RE = re.compile(r'<p style="[^"]*">\s*<em[^>]*>\s*(Source:.*?)\s*</em>\s*</p>', re.S | re.I)
 
 
@@ -378,87 +392,23 @@ def _fmt_date(iso):
         return ""
 
 
-def _masthead(meta, t):
-    if t.get("logo_url"):
-        brand = (f'<img src="{t["logo_url"]}" alt="{t["brand_name"]}" width="{t["logo_width_px"]}" '
-                 f'style="display:block;border:0;width:{t["logo_width_px"]}px;height:auto;">')
-    else:
-        initial = t["brand_name"].strip()[:1].upper()
-        tile = (f'<td valign="middle" width="40" height="40" align="center" bgcolor="{t["accent"]}" '
-                f'style="width:40px;height:40px;background-color:{t["accent"]};border-radius:9px;'
-                f'color:{t["bg_canvas"]};font-family:{t["font_heading"]};font-size:22px;font-weight:700;'
-                f'line-height:40px;text-align:center;mso-line-height-rule:exactly;">{initial}</td>')
-        name = (f'<div style="font-family:{t["font_heading"]};font-size:23px;font-weight:700;color:{t["ink"]};'
-                f'line-height:25px;letter-spacing:0.2px;white-space:nowrap;mso-line-height-rule:exactly;">{t["brand_name"]}</div>')
-        tag = ""
-        if t.get("tagline"):
-            tag = (f'<div style="font-family:{t["font_body"]};font-size:11px;font-weight:700;letter-spacing:1.3px;'
-                   f'text-transform:uppercase;color:{t["muted"]};margin-top:4px;-webkit-text-size-adjust:none;">{t["tagline"]}</div>')
-        brand = (f'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>{tile}'
-                 f'<td valign="middle" style="padding-left:12px;">{name}{tag}</td></tr></table>')
-    brand = f'<a href="{t["website_url"]}" style="text-decoration:none;">{brand}</a>'
-
-    bits = []
-    if meta.get("issue_number"):
-        bits.append(f"Issue {meta['issue_number']}")
-    date = meta.get("issue_date") or _fmt_date(meta.get("displayed_at") or meta.get("scheduled_at"))
-    if date:
-        bits.append(date)
-    right = ""
-    if bits:
-        right = (f'<div style="font-family:{t["font_body"]};font-size:12px;line-height:18px;color:{t["muted"]};'
-                 f'white-space:nowrap;-webkit-text-size-adjust:none;">{"<br>".join(bits)}</div>')
-
-    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">'
-            f'<tr><td valign="middle" align="left">{brand}</td>'
-            f'<td valign="middle" align="right">{right}</td></tr></table>')
-
-
 def _wrapper(body_html, meta, t):
-    cp = f"{t['pad_card_px']}px"
-    canvas, card, border, muted = t["bg_canvas"], t["bg_card"], t["border"], t["muted"]
-    fb, mw = t["font_body"], t["max_width_px"]
-
-    preheader = meta.get("preheader") or meta.get("preview") or ""
-    pre_html = ""
-    if preheader:
-        spacer = "&#847;&zwnj;&nbsp;" * 12
-        pre_html = (f'<div style="display:none !important;visibility:hidden;mso-hide:all;'
-                    f'font-size:1px;color:{canvas};line-height:1px;max-height:0;max-width:0;'
-                    f'opacity:0;overflow:hidden;">{preheader} {spacer}</div>\n')
-
-    masthead = _masthead(meta, t)
-    footer = t.get("footer_note") or f"Thanks for reading {t['brand_name']}."
-    site = re.sub(r"^https?://", "", t["website_url"]).rstrip("/")
-
+    """Output a transparent, chrome-free body fragment. beehiiv supplies the
+    title, date, author, footer and page background, so we emit only the copy
+    and design, on a transparent ground, to blend into beehiiv's own shell."""
+    mw, gx = t["max_width_px"], t.get("pad_x_px", 24)
     return f"""<div style="color-scheme:light dark;supported-color-schemes:light dark;">
-{pre_html}<!--[if mso]>
-<xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
-<![endif]-->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background-color:{canvas};margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-<tr><td align="center" style="padding:{t['pad_outer']};">
 <!--[if mso | IE]>
 <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" width="{mw}"><tr><td>
 <![endif]-->
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:{mw}px;background-color:{card};border:1px solid {border};">
-<tr><td style="padding:{cp} {cp} 0 {cp};">
-{masthead}
-</td></tr>
-<tr><td style="padding:0 {cp};">
-<hr style="border:0;border-top:1px solid {border};margin:22px 0 26px 0;height:0;line-height:0;font-size:0;">
-</td></tr>
-<tr><td style="padding:0 {cp} {cp} {cp};">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:{mw}px;margin:0 auto;background:transparent;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+<tr><td style="padding:4px {gx}px 12px {gx}px;font-family:{t['font_body']};">
 {body_html}
-</td></tr>
-<tr><td style="padding:0 {cp} {cp} {cp};border-top:1px solid {border};">
-<p style="font-family:{fb};font-size:13px;line-height:21px;color:{muted};margin:24px 0 0 0;-webkit-text-size-adjust:none;mso-line-height-rule:exactly;">{footer}</p>
-<p style="font-family:{fb};font-size:12px;line-height:18px;color:{muted};margin:6px 0 0 0;-webkit-text-size-adjust:none;mso-line-height-rule:exactly;"><a href="{t['website_url']}" style="color:{muted};text-decoration:underline;">{site}</a></p>
 </td></tr>
 </table>
 <!--[if mso | IE]>
 </td></tr></table>
 <![endif]-->
-</td></tr></table>
 </div>"""
 
 
