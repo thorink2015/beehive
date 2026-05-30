@@ -1,7 +1,15 @@
 # Tank Mix — rendered newsletters
 
 Final, paste-ready HTML for every issue, generated from `drafts/*.md` by
-`scripts/render.py`. Two files per issue:
+`scripts/render.py`.
+
+**These are chrome-free, transparent body fragments.** beehiiv supplies the
+post title, date, author, footer, and page background, so the HTML contains
+only the copy and design and is meant to blend into beehiiv's own shell. Paste
+the `*.html` into beehiiv's Custom HTML block; set the title/subject/preview in
+beehiiv's own fields (printed by `render.py`).
+
+Two files per issue:
 
 - `*.html` — the body to paste into beehiiv's Custom HTML block.
 - `*.preview.html` — open in a browser to eyeball the design (adds a page shell;
